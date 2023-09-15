@@ -18,7 +18,7 @@ css = '''
 
 .chat-message .avatar {
     width: 20%;
-}
+}   
 
 .chat-message .avatar img {
     max-width: 78px;
