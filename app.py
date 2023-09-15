@@ -9,9 +9,9 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 
-def get_pdf_text(pdf_docs):
+def get_pdf_text(files):
     text = ""
-    for pdf in pdf_docs:
+    for pdf in files:
         pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
             text += page.extract_text()
@@ -79,12 +79,12 @@ def main():
 
     with st.sidebar:
         st.subheader("Your documents")
-        pdf_docs = st.file_uploader(
+        files = st.file_uploader(
             "Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
-        if st.button("Process"):
+        if files:
             with st.spinner("Processing"):
                 # get pdf text
-                raw_text = get_pdf_text(pdf_docs)
+                raw_text = get_pdf_text(files)
 
                 # get the text chunks
                 text_chunks = get_text_chunks(raw_text)
