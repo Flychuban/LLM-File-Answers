@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from io import StringIO
 from langchain.agents import create_csv_agent
-from langchain.llms import OpenAIChat
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
 
 
 
@@ -42,10 +44,20 @@ def get_raw_text_pdf(uploaded_files):
     return read_text
 
     
-
+def get_conversation(vectorestore):
+    llm = ChatOpenAI()
+    memory = ConversationBufferMemory(memory_key="conversation_history", return_messages=True)
+    conversation_chain = ConversationalRetrievalChain(
+        llm = llm, 
+        memory = memory, 
+        retriever = vectorestore.as_retriever()
+)
+    
 
 
 def main():
+    load_dotenv()
+    
     st.set_page_config(page_title="Question Answering App", page_icon=":tyres:")
     st.header("AI Question Answering App based on documents :books:")
     st.text_input("Ask a question about your documents")
@@ -59,6 +71,9 @@ def main():
                 files_text = get_raw_text_pdf(uploaded_files)
                 print(files_text)
 
+                vectorstore = 30 # to be implemented
+                
+                st.session_state.conversation = get_conversation(vectorestore)
 
 if __name__ == "__main__":
     main() 
