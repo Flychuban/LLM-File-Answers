@@ -58,7 +58,7 @@ def get_conversation(vectorestore):
 def main():
     load_dotenv()
     
-    st.set_page_config(page_title="Question Answering App", page_icon=":tyres:")
+    st.set_page_config(page_title="LLM File Answers", page_icon=":tyres:")
     st.header("AI Question Answering App based on documents :books:")
     st.text_input("Ask a question about your documents")
     
