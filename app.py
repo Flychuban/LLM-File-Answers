@@ -2,48 +2,21 @@ import streamlit as st
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings, HuggingFaceInstructEmbeddings
+from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
-from langchain.llms import HuggingFaceHub
 
+def get_pdf_text(pdf_docs):
+    text = ""
+    for pdf in pdf_docs:
+        pdf_reader = PdfReader(pdf)
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+    return text
 
-
-def get_pdf_text(uploaded_files):
-    read_text = ""
-    for uploaded_file in uploaded_files:
-        if uploaded_file.name[-4:] == ".pdf":
-            print("In pdf reader")
-            pdf_reader = PdfReader(uploaded_file)
-            for page in pdf_reader.pages:
-                read_text += page.extract_text()
-
-        # elif uploaded_file.name[-4:] == ".txt" or uploaded_file.name[-5:] == ".docx":
-        #     print("In txt reader: ", uploaded_file.name)
-        #     # To convert to a string based IO:
-        #     stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-
-        #     # To read file as string:
-        #     string_data = stringio.read()
-        #     read_text += string_data
-            
-        # elif uploaded_file.name[-4:] == ".csv":
-        #     print("In csv reader")
-        #     df = pd.read_csv(uploaded_file)
-        #     read_text += df.to_string()
-        
-        # elif uploaded_file.name[-5:] == ".xlsx":
-        #     print("In xlsx reader")
-        #     df = pd.read_excel(uploaded_file)
-        #     # df = df.columns.values
-        #     print(df)
-        #     read_text += df
-            
-        
-    return read_text
 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
@@ -58,14 +31,12 @@ def get_text_chunks(text):
 
 def get_vectorstore(text_chunks):
     embeddings = OpenAIEmbeddings()
-    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
 
 
 def get_conversation_chain(vectorstore):
     llm = ChatOpenAI()
-    # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
 
     memory = ConversationBufferMemory(
         memory_key='chat_history', return_messages=True)
@@ -109,7 +80,7 @@ def main():
     with st.sidebar:
         st.subheader("Your documents")
         pdf_docs = st.file_uploader(
-            "Upload your files here and click on 'Process'", accept_multiple_files=True)
+            "Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
         if st.button("Process"):
             with st.spinner("Processing"):
                 # get pdf text
