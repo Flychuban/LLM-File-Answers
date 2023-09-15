@@ -1,16 +1,18 @@
 import streamlit as st
-import pandas as pd
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
-from io import StringIO
-from langchain.agents import create_csv_agent
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.embeddings import OpenAIEmbeddings, HuggingFaceInstructEmbeddings
+from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+from htmlTemplates import css, bot_template, user_template
+from langchain.llms import HuggingFaceHub
 
 
 
-def get_raw_text_pdf(uploaded_files):
+def get_pdf_text(uploaded_files):
     read_text = ""
     for uploaded_file in uploaded_files:
         if uploaded_file.name[-4:] == ".pdf":
@@ -43,37 +45,86 @@ def get_raw_text_pdf(uploaded_files):
         
     return read_text
 
-    
-def get_conversation(vectorestore):
+def get_text_chunks(text):
+    text_splitter = CharacterTextSplitter(
+        separator="\n",
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len
+    )
+    chunks = text_splitter.split_text(text)
+    return chunks
+
+
+def get_vectorstore(text_chunks):
+    embeddings = OpenAIEmbeddings()
+    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
+    vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+    return vectorstore
+
+
+def get_conversation_chain(vectorstore):
     llm = ChatOpenAI()
-    memory = ConversationBufferMemory(memory_key="conversation_history", return_messages=True)
-    conversation_chain = ConversationalRetrievalChain(
-        llm = llm, 
-        memory = memory, 
-        retriever = vectorestore.as_retriever()
-)
-    
+    # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
+
+    memory = ConversationBufferMemory(
+        memory_key='chat_history', return_messages=True)
+    conversation_chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=vectorstore.as_retriever(),
+        memory=memory
+    )
+    return conversation_chain
+
+
+def handle_userinput(user_question):
+    response = st.session_state.conversation({'question': user_question})
+    st.session_state.chat_history = response['chat_history']
+
+    for i, message in enumerate(st.session_state.chat_history):
+        if i % 2 == 0:
+            st.write(user_template.replace(
+                "{{MSG}}", message.content), unsafe_allow_html=True)
+        else:
+            st.write(bot_template.replace(
+                "{{MSG}}", message.content), unsafe_allow_html=True)
 
 
 def main():
     load_dotenv()
-    
-    st.set_page_config(page_title="LLM File Answers", page_icon=":tyres:")
-    st.header("AI Question Answering App based on documents :books:")
-    st.text_input("Ask a question about your documents")
-    
+    st.set_page_config(page_title="Chat with multiple PDFs",
+                       page_icon=":books:")
+    st.write(css, unsafe_allow_html=True)
+
+    if "conversation" not in st.session_state:
+        st.session_state.conversation = None
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = None
+
+    st.header("Chat with multiple PDFs :books:")
+    user_question = st.text_input("Ask a question about your documents:")
+    if user_question:
+        handle_userinput(user_question)
+
     with st.sidebar:
-        st.subheader("Upload your files for question answering")
-        uploaded_files = st.file_uploader("Upload your files and click 'Process'", type=["pdf", "txt", "csv", "xlsx", "docx"], accept_multiple_files=True)
+        st.subheader("Your documents")
+        pdf_docs = st.file_uploader(
+            "Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
         if st.button("Process"):
-            with st.spinner("Processing your files..."):
-                # Get all the text from the uploaded files
-                files_text = get_raw_text_pdf(uploaded_files)
-                print(files_text)
+            with st.spinner("Processing"):
+                # get pdf text
+                raw_text = get_pdf_text(pdf_docs)
 
-                vectorstore = 30 # to be implemented
-                
-                st.session_state.conversation = get_conversation(vectorestore)
+                # get the text chunks
+                text_chunks = get_text_chunks(raw_text)
 
-if __name__ == "__main__":
-    main() 
+                # create vector store
+                vectorstore = get_vectorstore(text_chunks)
+
+                # create conversation chain
+                st.session_state.conversation = get_conversation_chain(
+                    vectorstore)
+
+
+if __name__ == '__main__':
+    main()
