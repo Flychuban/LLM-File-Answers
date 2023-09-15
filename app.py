@@ -9,6 +9,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
+from langchain.embeddings import OpenAIEmbeddings
 
 
 
@@ -54,21 +55,31 @@ def get_text_chunks(files_text):
     )
     all_chunks = text_spliter.split(files_text)
     return all_chunks
+
+def get_vectorstore(all_chunks):
+    embeddings =  OpenAIEmbeddings()
+    vectorstore = FAISS.from_texts(texts=all_chunks, embeddings=embeddings)
+    return vectorstore
     
     
-def get_conversation(vectorestore):
+def get_conversation(vectorstore):
     llm = ChatOpenAI()
     memory = ConversationBufferMemory(memory_key="conversation_history", return_messages=True)
     conversation_chain = ConversationalRetrievalChain(
         llm = llm, 
         memory = memory, 
-        retriever = vectorestore.as_retriever()
+        retriever = vectorstore.as_retriever()
+    
+    return conversation_chain
 )
     
 
 
 def main():
     load_dotenv()
+    
+    if "conversation" not in st.session_state:
+        st.session_state.conversation = None
     
     st.set_page_config(page_title="Question Answering App", page_icon=":tyres:")
     st.header("AI Question Answering App based on documents :books:")
@@ -85,9 +96,9 @@ def main():
                 text_chunks = get_text_chunks(files_text)
                 
                 print(files_text)
-                vectorstore = 30 # to be implemented
+                vectorstore = get_vectorstore(text_chunks) # to be implemented
                 
-                st.session_state.conversation = get_conversation(vectorestore)
+                st.session_state.conversation = get_conversation(vectorstore)
 
 if __name__ == "__main__":
     main() 
