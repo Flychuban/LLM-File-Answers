@@ -7,6 +7,8 @@ from langchain.agents import create_csv_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+from langchain.vectorstores import FAISS
+from langchain.text_splitter import CharacterTextSplitter
 
 
 
@@ -43,6 +45,16 @@ def get_raw_text_pdf(uploaded_files):
         
     return read_text
 
+def get_text_chunks(files_text):
+    text_spliter = CharacterTextSplitter(
+        separator='\n',
+        chunk_size = 1000,
+        chunk_overlap=150,
+        length_function=len
+    )
+    all_chunks = text_spliter.split(files_text)
+    return all_chunks
+    
     
 def get_conversation(vectorestore):
     llm = ChatOpenAI()
@@ -69,8 +81,10 @@ def main():
             with st.spinner("Processing your files..."):
                 # Get all the text from the uploaded files
                 files_text = get_raw_text_pdf(uploaded_files)
+                
+                text_chunks = get_text_chunks(files_text)
+                
                 print(files_text)
-
                 vectorstore = 30 # to be implemented
                 
                 st.session_state.conversation = get_conversation(vectorestore)
