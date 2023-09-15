@@ -7,7 +7,7 @@ from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
-from htmlTemplates import css, bot_template, user_template
+from htmlTemplates import *
 
 def get_pdf_text(files):
     text = ""
@@ -73,8 +73,12 @@ def main():
         st.session_state.chat_history = None
 
     st.header("Chat with multiple PDFs :books:")
+
     user_question = st.text_input("Ask a question about your documents:")
-    if user_question:
+
+    st.button("Ask")
+
+    if user_question or (user_question and st.button("Ask")):
         handle_userinput(user_question)
 
     with st.sidebar:

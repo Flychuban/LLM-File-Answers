@@ -36,6 +36,7 @@ css = '''
 .message-text {
     color: #fff; /* Text color for the message text */
 }
+
 '''
 
 bot_template = '''
