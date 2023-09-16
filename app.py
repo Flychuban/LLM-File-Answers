@@ -1,22 +1,52 @@
 import streamlit as st
+import pandas as pd
+
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
+
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+from langchain.agents import create_csv_agent
+
 from htmlTemplates import *
 
-def get_pdf_text(files):
-    text = ""
-    for pdf in files:
-        pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text()
-    return text
+def get_file_text(uploaded_files):
+    read_text = ""
+    for uploaded_file in uploaded_files:
+        if uploaded_file.name[-4:] == ".pdf":
+            print("In pdf reader")
+            pdf_reader = PdfReader(uploaded_file)
+            for page in pdf_reader.pages:
+                read_text += page.extract_text()
+        # elif uploaded_file.name[-4:] == ".txt" or uploaded_file.name[-5:] == ".docx":
+        #     print("In txt reader: ", uploaded_file.name)
+        #     # To convert to a string based IO:
+        #     stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        #     # To read file as string:
+        #     string_data = stringio.read()
+        #     read_text += string_data
+            
+        elif uploaded_file.name[-4:] == ".csv":  # Handle CSV files
+            print("In csv reader")
+            df = pd.read_csv(uploaded_file)
+            print(df)
 
+            read_text += df.to_string()
+        
+        elif uploaded_file.name[-5:] == ".xlsx":
+            print("In xlsx reader")
+            df = pd.read_excel(uploaded_file)
+            # df = df.columns.values
+            print(df)
+            
+            read_text += df.to_string(index=False)  # You can adjust this as needed
+            
+            
+    return read_text
 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
@@ -88,7 +118,7 @@ def main():
         if files:
             with st.spinner("Processing"):
                 # get pdf text
-                raw_text = get_pdf_text(files)
+                raw_text = get_file_text(files)
 
                 # get the text chunks
                 text_chunks = get_text_chunks(raw_text)
