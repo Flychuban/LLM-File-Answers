@@ -66,7 +66,7 @@ def get_vectorstore(text_chunks):
 
 
 def get_conversation_chain(vectorstore):
-    llm = ChatOpenAI(model_name='gpt-4', temperature=0.1)
+    llm = ChatOpenAI(temperature=0.1)
 
     memory = ConversationBufferMemory(
         memory_key='chat_history', return_messages=True)
@@ -101,6 +101,8 @@ def main():
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
+    if "files" not in st.session_state:
+        st.session_state.files = None
 
     st.header("Chat with multiple PDFs :books:")
 
@@ -111,12 +113,12 @@ def main():
 
     with st.sidebar:
         st.subheader("Your documents")
-        files = st.file_uploader(
+        st.session_state.files = st.file_uploader(
             "Upload your PDFs here and click 'Process'", accept_multiple_files=True)
         if st.button("Process"):
             with st.spinner("Processing"):
                 # get pdf text
-                raw_text = get_file_text(files)
+                raw_text = get_file_text(st.session_state.files)
 
                 # get the text chunks
                 text_chunks = get_text_chunks(raw_text)
