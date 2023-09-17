@@ -66,7 +66,7 @@ def get_vectorstore(text_chunks):
 
 
 def get_conversation_chain(vectorstore):
-    llm = ChatOpenAI()
+    llm = ChatOpenAI(model_name='gpt-4', temperature=0.1)
 
     memory = ConversationBufferMemory(
         memory_key='chat_history', return_messages=True)
@@ -106,16 +106,14 @@ def main():
 
     user_question = st.text_input("Ask a question about your documents:")
 
-    st.button("Ask")
-
-    if user_question or (user_question and st.button("Ask")):
+    if st.button("Ask"):
         handle_userinput(user_question)
 
     with st.sidebar:
         st.subheader("Your documents")
         files = st.file_uploader(
-            "Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
-        if files:
+            "Upload your PDFs here and click 'Process'", accept_multiple_files=True)
+        if st.button("Process"):
             with st.spinner("Processing"):
                 # get pdf text
                 raw_text = get_file_text(files)
